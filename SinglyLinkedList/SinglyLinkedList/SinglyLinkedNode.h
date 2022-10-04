@@ -4,13 +4,13 @@ class SinglyLinkedNode
 {
 public:
 	T Value;
-	SinglyLinkedNode<T>* Next;
-	SinglyLinkedNode(T value, SinglyLinkedNode<T>* next = nullptr);
+	std::unique_ptr<SinglyLinkedNode<T>> Next;
+	SinglyLinkedNode(T value, std::unique_ptr<SinglyLinkedNode<T>> next = {});
 };
 
 template<typename T>
-SinglyLinkedNode<T>::SinglyLinkedNode(T value, SinglyLinkedNode<T>* next)
+SinglyLinkedNode<T>::SinglyLinkedNode(T value, std::unique_ptr<SinglyLinkedNode<T>> next)
 {
 	Value = value;
-	Next = next;
+	Next = std::move(next);
 }

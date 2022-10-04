@@ -5,7 +5,8 @@ using namespace std;
 int main()
 {
 	int option = 0;
-	SinglyLinkedList<int>* list = new SinglyLinkedList<int>();
+	SinglyLinkedList<int> list;
+
 	cout << "Options: " << endl <<
 		"0. Add" << endl <<
 		"1. AddAt" << endl <<
@@ -13,8 +14,9 @@ int main()
 		"3. Remove At Index" << endl <<
 		"4. Contains" << endl <<
 		"5. Count" << endl <<
-		"6. Exit" << endl;
-	while (option != 6)
+		"6. Print" << endl <<
+		"7. Exit" << endl;
+	while (option != 7)
 	{
 		cin >> option;
 		switch (option)
@@ -24,7 +26,7 @@ int main()
 			int numToAdd;
 			cout << "Number to add: ";
 			cin >> numToAdd;
-			list->Add(numToAdd);
+			list.Add(numToAdd);
 			cout << "Added " << numToAdd << endl;
 			break;
 		}
@@ -36,7 +38,7 @@ int main()
 			int index = 0;
 			cout << "Index to add at: ";
 			cin >> index;
-			list->AddAt(numToAdd, index);
+			list.AddAt(numToAdd, index);
 			cout << "Added " << numToAdd << " at index " << index << endl;
 			break;
 		}
@@ -45,7 +47,7 @@ int main()
 			int numToRemove;
 			cout << "Number to remove: ";
 			cin >> numToRemove;
-			bool result = list->Remove(numToRemove);
+			bool result = list.Remove(numToRemove);
 			if (result)
 			{
 				cout << "Removed value " << numToRemove << endl;
@@ -61,7 +63,7 @@ int main()
 			int indexToRemoveAt;
 			cout << "Index to remove at: ";
 			cin >> indexToRemoveAt;
-			bool result = list->RemoveAt(indexToRemoveAt);
+			bool result = list.RemoveAt(indexToRemoveAt);
 			if (result)
 			{
 				cout << "Removed value at index " << indexToRemoveAt << endl;
@@ -77,7 +79,7 @@ int main()
 			int numberToSearchFor = 0;
 			cout << "Number to search for: ";
 			cin >> numberToSearchFor;
-			bool containsNum = list->Contains(numberToSearchFor);
+			bool containsNum = list.Contains(numberToSearchFor);
 			if (containsNum)
 			{
 				cout << "List contains " << numberToSearchFor << endl;
@@ -89,7 +91,14 @@ int main()
 			break;
 		}
 		case 5:
-			cout << "Count: " << list->Count << endl;
+			cout << "Count: " << list.Count << endl;
+			break;
+		case 6:
+			for (int num : list)
+			{
+				cout << num << ' ';
+			}
+			cout << endl;
 			break;
 		}
 	}

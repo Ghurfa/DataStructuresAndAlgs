@@ -4,8 +4,31 @@
 template <typename T>
 class SinglyLinkedList
 {
-	typedef SLLIterator<T> iterator;
 public:
+	struct iterator
+	{
+	public:
+		using difference_type = T;
+		using value_type = T;
+		using pointer = const T*;
+		using reference = const T&;
+		using iterator_category = std::forward_iterator_tag;
+
+		iterator(SinglyLinkedNode<T>* ptr) { this->ptr = ptr; }
+		reference operator*() const { return ptr->Value; }
+		iterator& operator++() { ptr = ptr->Next.get(); return *this; }
+		iterator operator++(T)
+		{
+			iterator temp = *this;
+			++(*this);
+			return temp;
+		}
+		bool operator== (iterator other) const { return ptr == other.ptr; };
+		bool operator!= (iterator other) const { return ptr != other.ptr; };
+
+	private:
+		SinglyLinkedNode<T>* ptr;
+	};
 	const int& Count = count;
 	SinglyLinkedList();
 	~SinglyLinkedList();
@@ -16,9 +39,14 @@ public:
 	bool RemoveAfter(SinglyLinkedNode<T>* node);
 	bool Contains(T value);
 	void CopyTo(T* arr, int index = 0);
+	iterator begin();
+		iterator end()
+	{
+		return iterator(nullptr);
+	}
 private:
 	int count;
-	SinglyLinkedNode<T>* head;
+	std::unique_ptr<SinglyLinkedNode<T>> head;
 };
 
 template <typename T>
@@ -31,17 +59,7 @@ SinglyLinkedList<T>::SinglyLinkedList()
 template <typename T>
 SinglyLinkedList<T>::~SinglyLinkedList()
 {
-	//store a pointer to the next node
-	//delete the current node
-	//repeat
-	SinglyLinkedNode<T>* current = head;
-	SinglyLinkedNode<T>* next;
-	while (current != nullptr)
-	{
-		next = current->Next;
-		delete(current);
-		current = next;
-	}
+
 }
 
 template <typename T>
@@ -49,13 +67,16 @@ void SinglyLinkedList<T>::Add(T value)
 {
 	if (head == nullptr)
 	{
-		head = new SinglyLinkedNode<T>(value);
+		head = std::make_unique<SinglyLinkedNode<T>>(value);
 	}
 	else
 	{
 		SinglyLinkedNode<T>* traverser;
-		for (traverser = head; traverser->Next != nullptr; traverser = traverser->Next) {}
-		traverser->Next = new SinglyLinkedNode<T>(value);
+		for (traverser = head.get(); traverser->Next != nullptr; traverser = traverser->Next.get())
+		{
+
+		}
+		traverser->Next = std::make_unique<SinglyLinkedNode<T>>(value);
 	}
 	count++;
 }
@@ -67,16 +88,16 @@ void SinglyLinkedList<T>::AddAt(T value, int index)
 		throw std::out_of_range("Index is out of range");
 	if (index == 0)
 	{
-		head = new SinglyLinkedNode<T>(value, head);
+		head = std::make_unique<SinglyLinkedNode<T>>(value, std::move(head));
 	}
 	else
 	{
-		SinglyLinkedNode<T>* traverser = head;
+		SinglyLinkedNode<T>* traverser = head.get();
 		for (int i = 0; i < index - 1; i++)
 		{
-			traverser = traverser->Next;
+			traverser = traverser->Next.get();
 		}
-		traverser->Next = new SinglyLinkedNode<T>(value, traverser->Next);
+		traverser->Next = std::make_unique<SinglyLinkedNode<T>>(value, std::move(traverser->Next));
 	}
 	count++;
 }
@@ -87,18 +108,14 @@ bool SinglyLinkedList<T>::Remove(T value)
 	SinglyLinkedNode<T>* traverser;
 	if (head->Value == value)
 	{
-		SinglyLinkedNode<T>* newHead = head->Next;
-		delete(head);
-		head = newHead;
+		head = std::move(head->Next);
 		return true;
 	}
-	for (traverser = head; traverser->Next != nullptr; traverser = traverser->Next)
+	for (traverser = head.get(); traverser->Next != nullptr; traverser = traverser->Next.get())
 	{
 		if (traverser->Next->Value == value)
 		{
-			SinglyLinkedNode<T>* newNext = traverser->Next->Next;
-			delete(traverser->Next);
-			traverser->Next = newNext;
+			traverser->Next = std::move(traverser->Next->Next);
 			return true;
 		}
 	}
@@ -114,19 +131,15 @@ bool SinglyLinkedList<T>::RemoveAt(int index)
 	}
 	if (index == 0)
 	{
-		SinglyLinkedNode<T>* newHead = head->Next;
-		delete(head);
-		head = newHead;
+		head = std::move(head->Next);
 		return true;
 	}
-	SinglyLinkedNode<T>* traverser = head;
+	SinglyLinkedNode<T>* traverser = head.get();
 	for (int i = 0; i < index - 1; i++)
 	{
-		traverser = traverser->Next;
+		traverser = traverser->Next.get();
 	}
-	SinglyLinkedNode<T>* newNext = traverser->Next->Next;
-	delete(traverser->Next);
-	traverser->Next = newNext;
+	traverser->Next = std::move(traverser->Next->Next);
 	return true;
 }
 
@@ -144,7 +157,7 @@ template <typename T>
 bool SinglyLinkedList<T>::Contains(T value)
 {
 	SinglyLinkedNode<T>* traverser;
-	for (traverser = head; traverser != nullptr; traverser = traverser->Next)
+	for (traverser = head.get(); traverser != nullptr; traverser = traverser->Next.get())
 	{
 		if (traverser->Value == value)
 		{
@@ -165,4 +178,10 @@ void SinglyLinkedList<T>::CopyTo(T* arr, int startIndex)
 		index += sizeof(T);
 		node = node->Next;
 	}
+}
+
+template<typename T>
+typename SinglyLinkedList<T>::iterator SinglyLinkedList<T>::begin()
+{
+	return iterator(head.get());
 }
