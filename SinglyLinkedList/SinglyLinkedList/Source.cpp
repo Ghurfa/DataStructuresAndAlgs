@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include "SinglyLinkedList.h"
 using namespace std;
 
@@ -26,7 +27,7 @@ int main()
 			int numToAdd;
 			cout << "Number to add: ";
 			cin >> numToAdd;
-			list.Add(numToAdd);
+			list.AddLast(numToAdd);
 			cout << "Added " << numToAdd << endl;
 			break;
 		}
