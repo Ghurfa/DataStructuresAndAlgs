@@ -17,7 +17,9 @@ namespace Graph
     public class Graph<T>
     {
         internal Dictionary<T, Vertex<T>> ValToVertex = new();
-        internal List<Edge<T>> Edges = new();
+        private List<Edge<T>> _edges = new();
+
+        public IReadOnlyList<Edge<T>> Edges => _edges;
 
         public Vertex<T> AddVertex(T value)
         {
@@ -46,7 +48,7 @@ namespace Graph
             {
                 Vertex<T> other = edge.Start == vertex ? edge.End : edge.Start;
                 other._edges.Remove(edge);
-                Edges.Remove(edge);
+                _edges.Remove(edge);
                 edge.Owner = null;
             }
 
@@ -66,7 +68,7 @@ namespace Graph
             Edge<T> newEdge = new(startVert, endVert, distance);
             startVert._edges.Add(newEdge);
             endVert._edges.Add(newEdge);
-            Edges.Add(newEdge);
+            _edges.Add(newEdge);
             newEdge.Owner = this;
             return newEdge;
         }
@@ -92,7 +94,7 @@ namespace Graph
 
             edge.Start._edges.Add(edge);
             edge.End._edges.Add(edge);
-            Edges.Add(edge);
+            _edges.Add(edge);
             edge.Owner = this;
         }
 
@@ -102,7 +104,7 @@ namespace Graph
 
             edge.Start._edges.Remove(edge);
             edge.End._edges.Remove(edge);
-            Edges.Remove(edge);
+            _edges.Remove(edge);
             return true;
         }
 
