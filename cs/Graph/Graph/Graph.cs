@@ -12,7 +12,6 @@ namespace Graph
      * Multiple edges between the same nodes allowed
      * Edges from a node to itself not allowed
      * Vertex value cannot be null;
-     * Vertex.Edge stores both incoming and outgoing edges
      */
     public class Graph<T>
     {
@@ -30,6 +29,7 @@ namespace Graph
 
         public void AddVertex(Vertex<T> vertex)
         {
+            _ = vertex ?? throw new ArgumentNullException(nameof(vertex));
             if (vertex.Owner == this) throw new ArgumentException("Vertex already in graph");
             if(vertex.Owner != null) throw new ArgumentException("Vertex already has an owner");
 
@@ -42,12 +42,18 @@ namespace Graph
 
         public bool RemoveVertex(Vertex<T> vertex)
         {
-            if (vertex.Owner != this) return false;
+            if (vertex == null || vertex.Owner != this) return false;
 
-            foreach (Edge<T> edge in vertex.Edges)
+            foreach (Edge<T> edge in vertex.IncomingEdges)
             {
-                Vertex<T> other = edge.Start == vertex ? edge.End : edge.Start;
-                other._edges.Remove(edge);
+                edge.Start._edges.Remove(edge);
+                _edges.Remove(edge);
+                edge.Owner = null;
+            }
+
+            foreach (Edge<T> edge in vertex.OutgoingEdges)
+            {
+                edge.End._edges.Remove(edge);
                 _edges.Remove(edge);
                 edge.Owner = null;
             }
@@ -59,22 +65,16 @@ namespace Graph
 
         public Edge<T> AddEdge(T startValue, T endValue, double distance)
         {
-            _ = startValue ?? throw new ArgumentNullException(nameof(startValue));
-            _ = endValue ?? throw new ArgumentNullException(nameof(endValue));
             Vertex<T> startVert = Search(startValue) ?? throw new ArgumentException("Start value not found in graph");
             Vertex<T> endVert = Search(endValue) ?? throw new ArgumentException("End value not found in graph");
-            if (startVert == endVert) throw new ArgumentException("Cannot add an edge from a vertex to itself");
 
-            Edge<T> newEdge = new(startVert, endVert, distance);
-            startVert._edges.Add(newEdge);
-            endVert._edges.Add(newEdge);
-            _edges.Add(newEdge);
-            newEdge.Owner = this;
-            return newEdge;
+            return AddEdge(startVert, endVert, distance);
         }
 
         public Edge<T> AddEdge(Vertex<T> startVert, Vertex<T> endVert, double distance)
         {
+            _ = startVert ?? throw new ArgumentNullException(nameof(startVert));
+            _ = endVert ?? throw new ArgumentNullException(nameof(endVert));
             if (startVert.Owner != this) throw new ArgumentException("Graph does not own start vertex");
             if (endVert.Owner != this) throw new ArgumentException("Graph does not own end vertex");
             if (startVert == endVert) throw new ArgumentException("Cannot add an edge from a vertex to itself");
@@ -82,6 +82,8 @@ namespace Graph
             Edge<T> newEdge = new(startVert, endVert, distance);
             startVert._edges.Add(newEdge);
             endVert._edges.Add(newEdge);
+            _edges.Add(newEdge);
+            newEdge.Owner = this;
             return newEdge;
         }
 
@@ -110,26 +112,9 @@ namespace Graph
 
         public IEnumerable<Edge<T>> GetEdges(T startValue, T endValue)
         {
-            _ = startValue ?? throw new ArgumentNullException(nameof(startValue));
-            _ = endValue ?? throw new ArgumentNullException(nameof(endValue));
             Vertex<T> startVert = Search(startValue) ?? throw new ArgumentException("Start value not found in graph");
             Vertex<T> endVert = Search(endValue) ?? throw new ArgumentException("End value not found in graph");
-
-            foreach (Edge<T> edge in startVert.OutgoingEdges)
-            {
-                if (edge.End == endVert)
-                {
-                    yield return edge;
-                }
-            }
-
-            foreach (Edge<T> edge in endVert.OutgoingEdges)
-            {
-                if (edge.End == startVert)
-                {
-                    yield return edge;
-                }
-            }
+            return GetEdges(startVert, endVert);
         }
 
         public IEnumerable<Edge<T>> GetEdges(Vertex<T> startVertex, Vertex<T> endVertex)

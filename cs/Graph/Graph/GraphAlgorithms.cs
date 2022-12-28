@@ -22,11 +22,52 @@ namespace Graph
 
     public static class GraphAlgorithms
     {
-        public static Dictionary<Vertex<T>, PathfindingInfo<T>> Dijkstra<T>(Graph<T> graph, Vertex<T> start)
+        public static bool PathExists<T>(Vertex<T> start, Vertex<T> end)
         {
-            _ = graph ?? throw new ArgumentNullException(nameof(graph));
+            _ = start.Owner ?? throw new ArgumentException("Start vertex is not in a graph");
+            _ = end.Owner ?? throw new ArgumentException("End vertex is not in a graph");
+            if (start.Owner != end.Owner) throw new ArgumentException("Vertices are in different graphs");
+
+            if (start == end) return true;
+
+            HashSet<Vertex<T>> visited = new() { start };
+            Stack<IEnumerator<Edge<T>>> stack = new();
+            stack.Push(start.OutgoingEdges.GetEnumerator());
+
+            //Peek vertices from stack, pushing and switching to first non-visited neighbor
+            while(stack.TryPeek(out IEnumerator<Edge<T>> currEdges))
+            {
+                Vertex<T>? neighbor = null;
+                while(currEdges.MoveNext())
+                {
+                    if (!visited.Contains(currEdges.Current.End))
+                    {
+                        neighbor = currEdges.Current.End;
+                        if (neighbor == end) return true;
+                        else break;
+                    }
+                }
+
+                if (neighbor != null)
+                {
+                    stack.Push(neighbor.OutgoingEdges.GetEnumerator());
+                    visited.Add(neighbor);
+                }
+                else
+                {
+                    stack.Pop();
+                }
+            }
+            return false;
+        }
+
+        public static Dictionary<Vertex<T>, PathfindingInfo<T>> Dijkstra<T>(Vertex<T> start)
+        {
             _ = start ?? throw new ArgumentNullException(nameof(start));
-            if (start.Owner != graph) throw new ArgumentException("Start vertex is not in graph");
+            Graph<T> graph = start.Owner ?? throw new ArgumentException("Start vertex is not in a graph");
+
+            int a = 2;
+            int b = a == 2 ? a : throw new Exception();
 
             foreach (Edge<T> edge in graph.Edges)
             {
@@ -34,7 +75,7 @@ namespace Graph
                 {
                     throw new ArgumentException("Cannot pathfind in a graph with negative-weight edges");
                 }
-            }
+            }   
 
             //Set up queue & dictionary
             Dictionary<Vertex<T>, PathfindingInfo<T>> visitedInfo = new();
@@ -62,11 +103,10 @@ namespace Graph
         }
 
         //Returns whether there are any negative cycles
-        public static bool BellmanFord<T>(Graph<T> graph, Vertex<T> start, out Dictionary<Vertex<T>, PathfindingInfo<T>> pathfindingInfo)
+        public static bool BellmanFord<T>(Vertex<T> start, out Dictionary<Vertex<T>, PathfindingInfo<T>> pathfindingInfo)
         {
-            _ = graph ?? throw new ArgumentNullException(nameof(graph));
             _ = start ?? throw new ArgumentNullException(nameof(start));
-            if (start.Owner != graph) throw new ArgumentException("Start vertex is not in graph");
+            Graph<T> graph = start.Owner ?? throw new ArgumentException("Start vertex is not in a graph");
 
             pathfindingInfo = new Dictionary<Vertex<T>, PathfindingInfo<T>>();
             pathfindingInfo[start] = new PathfindingInfo<T>(null, 0.0);
