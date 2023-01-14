@@ -1,10 +1,10 @@
-﻿namespace BTree
+﻿namespace BTrees
 {
     internal class Program
     {
         static void Main(string[] args)
         {
-            Tree23<int> tree = new();
+            BTree<int> tree = new(4);
             tree.Insert(5);
             tree.Insert(8);
             tree.Insert(90);
@@ -15,6 +15,9 @@
             tree.Insert(4);
             tree.Insert(4);
             tree.Insert(2);
+            tree.Insert(11);
+            tree.Insert(11);
+            tree.Insert(95);
 
             while (true)
             {
