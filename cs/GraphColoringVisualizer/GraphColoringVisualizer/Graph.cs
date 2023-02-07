@@ -9,30 +9,84 @@ namespace GraphColoringVisualizer
     internal class Graph
     {
         public List<Node> Nodes = new();
-        public List<Edge> Edges = new();
 
         public void AddNode(Node node)
         {
             Nodes.Add(node);
         }
 
-        public void DoColoring(int colorCount)
-        {
-
-        }
-
         public bool AddEdge(Node start, Node end)
         {
-            foreach(Edge other in Edges)
+            if (start.Neighbors.Contains(end))
             {
-                if(other.Start == start && other.End == end) 
+                return false;
+            }
+
+            start.Neighbors.Add(end);
+            end.Neighbors.Add(start);
+            return true;
+        }
+
+        public bool RemoveNode(Node node)
+        {
+            return Nodes.Remove(node);
+        }
+
+        public bool RemoveEdge(Node start, Node end)
+        {
+            return start.Neighbors.Remove(end) & end.Neighbors.Remove(start);
+        }
+
+        public bool IsColorable(int colorCount)
+        {
+            if (colorCount == 2)
+            {
+                return Is2Colorable();
+            }
+            else throw new NotImplementedException();
+        }
+
+        private bool Is2Colorable()
+        {
+            ResetColors();
+
+            Queue<Node> queue = new(Nodes);
+
+            // Component = connected subgraph that is not part of any other connected subgraph
+            while (queue.TryDequeue(out Node componentStart))
+            {
+                if (componentStart.Color != 0) continue;
+
+                componentStart.Color = 1;
+                Stack<Node> currGraphStack = new();
+                currGraphStack.Push(componentStart);
+
+                while (currGraphStack.TryPop(out Node curr))
                 {
-                    return false;
+                    foreach (Node neighbor in curr.Neighbors)
+                    {
+                        if (neighbor.Color == 0)
+                        {
+                            neighbor.Color = curr.Color == 1 ? 2 : 1;
+                            currGraphStack.Push(neighbor);
+                        }
+                        else if (neighbor.Color == curr.Color)
+                        {
+                            return false;
+                        }
+                    }
                 }
             }
 
-            Edges.Add(new Edge(start, end));
             return true;
+        }
+
+        public void ResetColors()
+        {
+            foreach(Node node in Nodes)
+            {
+                node.Color = 0;
+            }
         }
 
         public bool CheckClick(Point point, out Node? selected)

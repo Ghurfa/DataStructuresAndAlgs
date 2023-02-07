@@ -12,6 +12,8 @@ namespace GraphColoringVisualizer
         public string Name { get; set; }
         public int Color { get; set; }
 
+        public List<Node> Neighbors { get; }
+
         public Point Center => new Point(Bounds.X + Bounds.Width / 2, Bounds.Y + Bounds.Height / 2);
 
         public Node(Rectangle bounds, string name)
@@ -19,6 +21,7 @@ namespace GraphColoringVisualizer
             Bounds = bounds;
             Name = name;
             Color = 0;
+            Neighbors = new List<Node>();
         }
     }
 }

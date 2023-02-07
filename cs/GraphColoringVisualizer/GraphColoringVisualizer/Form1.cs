@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Windows.Forms.VisualStyles;
 
 namespace GraphColoringVisualizer
 {
@@ -22,6 +23,10 @@ namespace GraphColoringVisualizer
 
         private Graph Graph = new();
 
+        private List<(Node A, Node? B)> ActionStack = new();
+        private int CurrActionIdx = -1;
+        private int MaxRedoIdx = -1;
+
         public Form1()
         {
             InitializeComponent();
@@ -42,14 +47,17 @@ namespace GraphColoringVisualizer
 
         private void colorButton_Click(object sender, EventArgs e)
         {
-            Graph.DoColoring((int)colorCountInput.Value);
+            bool colorable = Graph.IsColorable((int)colorCountInput.Value);
+            statusLabel.Text = colorable ? "Colorable" : "Not colorable";
+            DrawGraph();
         }
 
         private void display_MouseClick(object sender, MouseEventArgs e)
         {
+            ClearColorability();
             if (AddState == States.None || AddState == States.AddingNewNode)
             {
-                if(AddState == States.AddingNewNode)
+                if (AddState == States.AddingNewNode)
                 {
                     AddNewNode();
                 }
@@ -58,30 +66,32 @@ namespace GraphColoringVisualizer
                 {
                     selected.Color = 1;
                     EdgeStartNode = selected;
-                    AddState = States.AddingNewEdge;
-
-                    NewNodeNameInput.Enabled = false;
-                    NewNodeNameInput.Hide();
+                    HideNewNodeBox();
                     DrawGraph();
+                    AddState = States.AddingNewEdge;
                 }
                 else
                 {
-                    NewNodeLocation = e.Location;
-                    NewNodeNameInput.Location = NewNodeLocation;
-                    NewNodeNameInput.Text = "";
-                    NewNodeNameInput.Enabled = true;
-                    NewNodeNameInput.Show();
-                    NewNodeNameInput.Focus();
-                    NewNodeNameInput.BringToFront();
-
+                    ShowNewNodeBox(e.Location);
                     AddState = States.AddingNewNode;
                 }
             }
             else if (AddState == States.AddingNewEdge)
             {
-                if(Graph.CheckClick(e.Location, out Node selected) && EdgeStartNode != selected)
+                if (Graph.CheckClick(e.Location, out Node selected) && EdgeStartNode != selected)
                 {
                     Graph.AddEdge(EdgeStartNode, selected);
+
+                    CurrActionIdx++;
+                    MaxRedoIdx = CurrActionIdx;
+                    if (ActionStack.Count == CurrActionIdx)
+                    {
+                        ActionStack.Add((EdgeStartNode, selected));
+                    }
+                    else
+                    {
+                        ActionStack[CurrActionIdx] = (EdgeStartNode, selected);
+                    }
                 }
 
                 EdgeStartNode.Color = 0;
@@ -92,20 +102,89 @@ namespace GraphColoringVisualizer
             }
         }
 
-        private void Form1_MouseClick(object sender, MouseEventArgs e)
+        private void Deselect()
         {
             if (AddState == States.AddingNewNode)
             {
                 AddNewNode();
-                AddState = States.None;
-
-                NewNodeNameInput.Enabled = false;
-                NewNodeNameInput.Hide();
+                HideNewNodeBox();
             }
-            else if(AddState == States.AddingNewEdge)
+            else if (AddState == States.AddingNewEdge)
             {
+                EdgeStartNode.Color = 0;
+                EdgeStartNode = null;
+            }
+            DrawGraph();
+            AddState = States.None;
+        }
+
+        private void Form1_MouseClick(object sender, MouseEventArgs e)
+        {
+            Deselect();
+        }
+
+        private void Form1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == '\r' && AddState == States.AddingNewNode)
+            {
+                AddNewNode();
+                HideNewNodeBox();
                 AddState = States.None;
             }
+        }
+
+        private void clearButton_Click(object sender, EventArgs e)
+        {
+            Deselect();
+            Graph.Nodes.Clear();
+            DrawGraph();
+
+            ActionStack.Clear();
+            CurrActionIdx = -1;
+            MaxRedoIdx = -1;
+
+            AddState = States.None;
+        }
+
+        private void undoButton_Click(object sender, EventArgs e)
+        {
+            Deselect();
+            if (CurrActionIdx < 0) return;
+
+            ClearColorability();
+
+            (Node a, Node? b) = ActionStack[CurrActionIdx];
+            if (b == null)
+            {
+                Graph.RemoveNode(a);
+            }
+            else
+            {
+                Graph.RemoveEdge(a, b);
+            }
+            CurrActionIdx--;
+            DrawGraph();
+        }
+
+        private void redoButton_Click(object sender, EventArgs e)
+        {
+            Deselect();
+            if (CurrActionIdx >= MaxRedoIdx) return;
+
+            ClearColorability();
+            CurrActionIdx++;
+
+            (Node a, Node? b) = ActionStack[CurrActionIdx];
+            if (b == null)
+            {
+                Graph.AddNode(a);
+            }
+            else
+            {
+                Graph.AddEdge(a, b);
+            }
+
+            DrawGraph();
         }
 
         private void AddNewNode()
@@ -117,7 +196,42 @@ namespace GraphColoringVisualizer
                 Node newNode = new(new Rectangle(NewNodeLocation, new Size(20, 20)), NewNodeNameInput.Text);
                 Graph.Nodes.Add(newNode);
                 DrawGraph();
+
+                CurrActionIdx++;
+                MaxRedoIdx = CurrActionIdx;
+                if (ActionStack.Count == CurrActionIdx)
+                {
+                    ActionStack.Add((newNode, null));
+                }
+                else
+                {
+                    ActionStack[CurrActionIdx] = (newNode, null);
+                }
             }
+        }
+
+        private void ShowNewNodeBox(Point location)
+        {
+            NewNodeLocation = location;
+            NewNodeNameInput.Location = NewNodeLocation;
+            NewNodeNameInput.Text = "";
+            NewNodeNameInput.Enabled = true;
+            NewNodeNameInput.Show();
+            NewNodeNameInput.Focus();
+            NewNodeNameInput.BringToFront();
+        }
+
+        private void HideNewNodeBox()
+        {
+            NewNodeNameInput.Enabled = false;
+            NewNodeNameInput.Hide();
+        }
+
+        private void ClearColorability()
+        {
+            Graph.ResetColors();
+            statusLabel.Text = string.Empty;
+            DrawGraph();
         }
 
         private void DrawGraph()
@@ -125,9 +239,13 @@ namespace GraphColoringVisualizer
             Draw.Clear(Color.White);
             Pen[] pens = new[] { Pens.Black, Pens.Red, Pens.Blue };
 
-            foreach (Edge edge in Graph.Edges)
+            // Double-draws edges but w/e
+            foreach (Node start in Graph.Nodes)
             {
-                Draw.DrawLine(Pens.Black, edge.Start.Center, edge.End.Center);
+                foreach (Node end in start.Neighbors)
+                {
+                    Draw.DrawLine(Pens.Black, start.Center, end.Center);
+                }
             }
 
             foreach (Node node in Graph.Nodes)
@@ -138,18 +256,6 @@ namespace GraphColoringVisualizer
             }
 
             display.Image = Image;
-        }
-
-        private void Form1_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (e.KeyChar == '\r' && AddState == States.AddingNewNode)
-            {
-                AddNewNode();
-
-                NewNodeNameInput.Enabled = false;
-                NewNodeNameInput.Hide();
-                AddState = States.None;
-            }
         }
     }
 }
