@@ -15,8 +15,29 @@ namespace Graph
      */
     public class Graph<T>
     {
-        internal Dictionary<T, Vertex<T>> ValToVertex = new();
-        private List<Edge<T>> _edges = new();
+        internal Dictionary<T, Vertex<T>> ValToVertex;
+        private List<Edge<T>> _edges;
+
+        public Graph() 
+        { 
+            ValToVertex = new Dictionary<T, Vertex<T>>();
+            _edges = new List<Edge<T>>();
+        }
+
+        public Graph(Graph<T> other) 
+        { 
+            ValToVertex = new Dictionary<T, Vertex<T>>();
+            foreach(Vertex<T> vertex in other.ValToVertex.Values)
+            {
+                AddVertex(vertex.Value);
+            }
+
+            _edges = new List<Edge<T>>();
+            foreach(Edge<T> edge in other._edges)
+            {
+                AddEdge(edge.Start.Value, edge.End.Value, edge.Distance);
+            }
+        }
 
         public IReadOnlyList<Edge<T>> Edges => _edges;
 
@@ -60,6 +81,7 @@ namespace Graph
 
             vertex.Owner = null;
             vertex._edges.Clear();
+            ValToVertex.Remove(vertex.Value);
             return true;
         }
 
